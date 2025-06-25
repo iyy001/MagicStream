@@ -14,6 +14,14 @@ import (
 	"github.com/joho/godotenv"
 )
 
+func init() {
+	// Set Gin to release mode to avoid debug logs in production
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Println("Warning: .env file not found")
+	}
+}
+
 func main() {
 	// Create a new Gin router
 	router := gin.Default()
@@ -27,10 +35,6 @@ func main() {
 		c.String(200, "pong")
 	})
 
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080" // Default port if not set

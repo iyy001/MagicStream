@@ -13,7 +13,7 @@ import (
 func DBInstance() *mongo.Client {
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("Warning: unable to finde .env file")
 	}
 	MongoDb := os.Getenv("MONGODB_URI")
 	if MongoDb == "" {

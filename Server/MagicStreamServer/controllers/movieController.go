@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -192,7 +193,8 @@ func GetReviewRanking(admin_review string) (string, int, error) {
 
 	err = godotenv.Load(".env")
 	if err != nil {
-		return "", 0, err
+		log.Println("Warning: .env file not found")
+
 	}
 
 	OpenAiApiKey := os.Getenv("OPENAI_API_KEY")
