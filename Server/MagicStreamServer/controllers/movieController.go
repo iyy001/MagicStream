@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -137,7 +138,7 @@ func AdminReviewUpdate() gin.HandlerFunc {
 		sentiment, rankVal, err := GetReviewRanking(req.AdminReview)
 
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "ERror getting review ranking"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting review ranking"})
 			return
 		}
 
@@ -183,7 +184,7 @@ func GetReviewRanking(admin_review string) (string, int, error) {
 	sentimentDelimited := ""
 
 	for _, ranking := range rankings {
-		if ranking.RankingValue != 0 {
+		if ranking.RankingValue != 999 {
 			sentimentDelimited = sentimentDelimited + ranking.RankingName + ","
 
 		}
@@ -269,13 +270,26 @@ func GetRecommendedMovies() gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		var RecommendedMovieLimit int64 = 5
+
+		err = godotenv.Load(".env")
+		if err != nil {
+			log.Println("Warning: .env file not found")
+
+		}
+
+		var recommendedMovieLimitVal int64 = 5
+
+		recommendedMovieLimitStr := os.Getenv("RECOMMENDED_MOVIE_LIMIT")
+
+		if recommendedMovieLimitStr != "" {
+			recommendedMovieLimitVal, _ = strconv.ParseInt(recommendedMovieLimitStr, 10, 64)
+		}
 
 		findOptions := options.Find()
 
 		findOptions.SetSort(bson.D{{Key: "ranking.ranking_value", Value: 1}})
 
-		findOptions.SetLimit(RecommendedMovieLimit)
+		findOptions.SetLimit(recommendedMovieLimitVal)
 
 		filter := bson.M{"genre.genre_name": bson.M{"$in": favourite_genres}}
 

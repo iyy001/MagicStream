@@ -13,7 +13,7 @@ import (
 func DBInstance() *mongo.Client {
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Println("Warning: unable to finde .env file")
+		log.Println("Warning: unable to find .env file")
 	}
 	MongoDb := os.Getenv("MONGODB_URI")
 	if MongoDb == "" {
@@ -33,7 +33,18 @@ func DBInstance() *mongo.Client {
 var Client *mongo.Client = DBInstance()
 
 func OpenCollection(collectionName string) *mongo.Collection {
-	collection := Client.Database("magicmoviestream").Collection(collectionName)
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Println("Warning: unable to find .env file")
+	}
+	databaseName := os.Getenv("DATABASE_NAME")
+	if databaseName == "" {
+		log.Fatal("DATABASE_NAME not set in .env file")
+	}
+	fmt.Println("DATABASE_NAME: ", databaseName)
+
+	collection := Client.Database(databaseName).Collection(collectionName)
+
 	if collection == nil {
 		return nil
 	}
