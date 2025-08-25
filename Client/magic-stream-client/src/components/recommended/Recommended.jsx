@@ -1,6 +1,7 @@
 import useAxiosPrivate from '../../hooks/useAxiosPrivate';
 import {useEffect, useState} from 'react';
 import Movies from '../movies/Movies';
+import Spinner from '../spinner/Spinner';
 
 const Recommended = () => {
     const [movies, setMovies] = useState([]);
@@ -29,7 +30,7 @@ const Recommended = () => {
     return (
         <>
             {loading ? (
-                <h2>Loading...</h2>
+                <Spinner/>
             ) :(
                 <Movies movies = {movies} message ={message} />
             )}

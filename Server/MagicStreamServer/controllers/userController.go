@@ -93,10 +93,9 @@ func LoginUser(client *mongo.Client) gin.HandlerFunc {
 		var ctx, cancel = context.WithTimeout(c, 100*time.Second)
 		defer cancel()
 
-		var foundUser models.User
-
 		var userCollection *mongo.Collection = database.OpenCollection("users", client)
 
+		var foundUser models.User
 		err := userCollection.FindOne(ctx, bson.D{{Key: "email", Value: userLogin.Email}}).Decode(&foundUser)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
@@ -244,9 +243,9 @@ func RefreshTokenHandler(client *mongo.Client) gin.HandlerFunc {
 			return
 		}
 
-		var user models.User
 		var userCollection *mongo.Collection = database.OpenCollection("users", client)
 
+		var user models.User
 		err = userCollection.FindOne(ctx, bson.D{{Key: "user_id", Value: claim.UserId}}).Decode(&user)
 
 		if err != nil {

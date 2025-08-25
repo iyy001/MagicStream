@@ -29,8 +29,6 @@ func GetMovies(client *mongo.Client) gin.HandlerFunc {
 		ctx, cancel := context.WithTimeout(c, 100*time.Second)
 		defer cancel()
 
-		var movies []models.Movie
-
 		var movieCollection *mongo.Collection = database.OpenCollection("movies", client)
 
 		cursor, err := movieCollection.Find(ctx, bson.D{})
@@ -39,6 +37,8 @@ func GetMovies(client *mongo.Client) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch movies."})
 		}
 		defer cursor.Close(ctx)
+
+		var movies []models.Movie
 
 		if err = cursor.All(ctx, &movies); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode movies."})
@@ -61,9 +61,10 @@ func GetMovie(client *mongo.Client) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Movie ID is required"})
 			return
 		}
-		var movie models.Movie
 
 		var movieCollection *mongo.Collection = database.OpenCollection("movies", client)
+
+		var movie models.Movie
 
 		err := movieCollection.FindOne(ctx, bson.D{{Key: "imdb_id", Value: movieID}}).Decode(&movie)
 
@@ -371,8 +372,6 @@ func GetGenres(client *mongo.Client) gin.HandlerFunc {
 		var ctx, cancel = context.WithTimeout(c, 100*time.Second)
 		defer cancel()
 
-		var genres []models.Genre
-
 		var genreCollection *mongo.Collection = database.OpenCollection("genres", client)
 
 		cursor, err := genreCollection.Find(ctx, bson.D{})
@@ -382,6 +381,7 @@ func GetGenres(client *mongo.Client) gin.HandlerFunc {
 		}
 		defer cursor.Close(ctx)
 
+		var genres []models.Genre
 		if err := cursor.All(ctx, &genres); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
