@@ -1,10 +1,8 @@
-//import axiosPrivate from '../../api/axiosPrivateConfig';
 import useAxiosPrivate from '../../hooks/useAxiosPrivate';
-import {useEffect,useState} from 'react'
-import Movies from '../movies/Movies'
-import Spinner from '../spinner/Spinner';
+import {useEffect, useState} from 'react';
+import Movies from '../movies/Movies';
 
-const Recommended = () =>{
+const Recommended = () => {
     const [movies, setMovies] = useState([]);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState();
@@ -15,33 +13,28 @@ const Recommended = () =>{
             setLoading(true);
             setMessage("");
 
-            try {
+            try{
                 const response = await axiosPrivate.get('/recommendedmovies');
                 setMovies(response.data);
-                if (response.data.length === 0) {
-                    setMessage('No recommended movies available');
-                }
-            } catch (error) {
-                console.error('Error fetching recommended movies:', error);
+            } catch (error){
+                console.error("Error fetching recommended movies:", error)
             } finally {
                 setLoading(false);
             }
-        };
-    
-            fetchRecommendedMovies();
-        }, []);
 
+        }
+        fetchRecommendedMovies();
+    }, [])
 
     return (
-      <>
-        {loading ? (
-           <Spinner />
-        ) : (
-          <>
-                 <Movies movies={movies} message={message} /> 
-          </>
-        )}
-      </>
-    );
+        <>
+            {loading ? (
+                <h2>Loading...</h2>
+            ) :(
+                <Movies movies = {movies} message ={message} />
+            )}
+        </>
+    )
+
 }
 export default Recommended

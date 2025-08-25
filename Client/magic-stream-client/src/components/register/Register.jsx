@@ -1,5 +1,4 @@
 import { useState, useEffect} from 'react';
-
 import Container from 'react-bootstrap/Container';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
@@ -8,7 +7,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import logo from '../../assets/MagicStreamLogo.png';
 
 const Register = () => {
-
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
@@ -20,7 +18,7 @@ const Register = () => {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-   
+
     const handleGenreChange = (e) => {
         const options = Array.from(e.target.selectedOptions);
         setFavouriteGenres(options.map(opt => ({
@@ -28,7 +26,6 @@ const Register = () => {
             genre_name: opt.label
         })));
     };
-
    const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
@@ -65,6 +62,8 @@ const Register = () => {
             setLoading(false);
         }
     };
+
+
     useEffect(() => {
         const fetchGenres = async () => {
         try {
@@ -79,19 +78,18 @@ const Register = () => {
     }, []);
 
 
-
     return (
-        <Container className="login-container d-flex align-items-center justify-content-center min-vh-100">
-           <div className="login-card shadow p-4 rounded bg-white" style={{maxWidth: 400, width: '100%'}}>
+
+
+       <Container className="login-container d-flex align-items-center justify-content-center min-vh-100">
+        <div className="login-card shadow p-4 rounded bg-white" style={{maxWidth: 400, width: '100%'}}>
                 <div className="text-center mb-4">
-            
-                    <img src={logo} alt="Logo" width={60} className="mb-2" />
+                     <img src={logo} alt="Logo" width={60} className="mb-2" />
                     <h2 className="fw-bold">Register</h2>
                     <p className="text-muted">Create your Magic Movie Stream account.</p>
-                {error && <div className="alert alert-danger py-2">{error}</div>}                
+                    {error && <div className="alert alert-danger py-2">{error}</div>}                
                 </div>
-
-            <Form onSubmit={handleSubmit}>
+             <Form onSubmit={handleSubmit}>
                      <Form.Group className="mb-3">
                         <Form.Label>First Name</Form.Label>
                         <Form.Control
@@ -178,12 +176,8 @@ const Register = () => {
                         ) : 'Register'}
                     </Button>                        
             </Form>
-                <div className="text-center mt-3">
-                    <span className="text-muted">Already have an account? </span>
-                    <Link to="/login" className="fw-semibold">Login here</Link>
-                </div>
-            </div>
-        </Container>
+            </div>           
+       </Container>
 
     )
 }

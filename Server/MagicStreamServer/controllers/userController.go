@@ -1,10 +1,9 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
-
-	"context"
 	"time"
 
 	"github.com/GavinLonDigital/MagicStream/Server/MagicStreamServer/database"
@@ -18,19 +17,17 @@ import (
 )
 
 func HashPassword(password string) (string, error) {
-	// Implement password hashing logic here
 	HashPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
 	}
+
 	return string(HashPassword), nil
+
 }
 
-var usersCollection *mongo.Collection = database.OpenCollection("users")
-
-func RegisterUser() gin.HandlerFunc {
+func RegisterUser(client *mongo.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
-
 		var user models.User
 
 		if err := c.ShouldBindJSON(&user); err != nil {
@@ -38,67 +35,69 @@ func RegisterUser() gin.HandlerFunc {
 			return
 		}
 		validate := validator.New()
+
 		if err := validate.Struct(user); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Validation failed", "details": err.Error()})
 			return
 		}
 
 		hashedPassword, err := HashPassword(user.Password)
+
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to hash password"})
 			return
 		}
 
-		user.Password = hashedPassword
-
-		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		var ctx, cancel = context.WithTimeout(c, 100*time.Second)
 		defer cancel()
 
-		count, err := usersCollection.CountDocuments(ctx, bson.M{"email": user.Email})
+		var userCollection *mongo.Collection = database.OpenCollection("users", client)
+
+		count, err := userCollection.CountDocuments(ctx, bson.D{{Key: "email", Value: user.Email}})
+
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check existing users"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check existing user"})
 			return
 		}
 		if count > 0 {
 			c.JSON(http.StatusConflict, gin.H{"error": "User already exists"})
 			return
 		}
-		user.UserId = bson.NewObjectID().Hex()
-		token, refreshToken, err := utils.GenerateAllTokens(user.Email, user.FirstName, user.LastName, user.Role, user.UserId)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
-			return
-		}
-		user.Token = token
-		user.RefreshToken = refreshToken
-
+		user.UserID = bson.NewObjectID().Hex()
 		user.CreatedAt = time.Now()
 		user.UpdatedAt = time.Now()
+		user.Password = hashedPassword
 
-		result, err := usersCollection.InsertOne(ctx, user)
+		result, err := userCollection.InsertOne(ctx, user)
+
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 			return
 		}
+
 		c.JSON(http.StatusCreated, result)
+
 	}
+
 }
 
-func LoginUser() gin.HandlerFunc {
+func LoginUser(client *mongo.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
-
 		var userLogin models.UserLogin
 
 		if err := c.ShouldBindJSON(&userLogin); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input data"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalide input data"})
 			return
 		}
 
-		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		var ctx, cancel = context.WithTimeout(c, 100*time.Second)
 		defer cancel()
 
 		var foundUser models.User
-		err := usersCollection.FindOne(ctx, bson.M{"email": userLogin.Email}).Decode(&foundUser)
+
+		var userCollection *mongo.Collection = database.OpenCollection("users", client)
+
+		err := userCollection.FindOne(ctx, bson.D{{Key: "email", Value: userLogin.Email}}).Decode(&foundUser)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 			return
@@ -110,15 +109,19 @@ func LoginUser() gin.HandlerFunc {
 			return
 		}
 
-		token, refreshToken, err := utils.GenerateAllTokens(foundUser.Email, foundUser.FirstName, foundUser.LastName, foundUser.Role, foundUser.UserId)
+		token, refreshToken, err := utils.GenerateAllTokens(foundUser.Email, foundUser.FirstName, foundUser.LastName, foundUser.Role, foundUser.UserID)
+
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
 			return
 		}
 
-		//c.SetCookie("access_token", token, 86400, "/", "localhost", true, true)          // expires in 24 hours
-		//c.SetCookie("refresh_token", refreshToken, 604800, "/", "localhost", true, true) //expires in 1 week
+		err = utils.UpdateAllTokens(foundUser.UserID, token, refreshToken, client)
 
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update tokens"})
+			return
+		}
 		http.SetCookie(c.Writer, &http.Cookie{
 			Name:  "access_token",
 			Value: token,
@@ -129,7 +132,6 @@ func LoginUser() gin.HandlerFunc {
 			HttpOnly: true,
 			SameSite: http.SameSiteNoneMode,
 		})
-
 		http.SetCookie(c.Writer, &http.Cookie{
 			Name:  "refresh_token",
 			Value: refreshToken,
@@ -141,22 +143,21 @@ func LoginUser() gin.HandlerFunc {
 			SameSite: http.SameSiteNoneMode,
 		})
 
-		// foundUser.Token = token
-		// foundUser.RefreshToken = refreshToken
-
 		c.JSON(http.StatusOK, models.UserResponse{
-			UserId:    foundUser.UserId,
+			UserId:    foundUser.UserID,
 			FirstName: foundUser.FirstName,
 			LastName:  foundUser.LastName,
 			Email:     foundUser.Email,
 			Role:      foundUser.Role,
-			// Token:           token,
-			// RefreshToken:    refreshToken,
+			//Token:           token,
+			//RefreshToken:    refreshToken,
 			FavouriteGenres: foundUser.FavouriteGenres,
 		})
+
 	}
 }
-func LogoutHandler() gin.HandlerFunc {
+
+func LogoutHandler(client *mongo.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Clear the access_token cookie
 
@@ -172,7 +173,7 @@ func LogoutHandler() gin.HandlerFunc {
 
 		fmt.Println("User ID from Logout request:", UserLogout.UserId)
 
-		err = utils.UpdateAllTokens(UserLogout.UserId, "", "") // Clear tokens in the database
+		err = utils.UpdateAllTokens(UserLogout.UserId, "", "", client) // Clear tokens in the database
 		// Optionally, you can also remove the user session from the database if needed
 
 		if err != nil {
@@ -222,9 +223,10 @@ func LogoutHandler() gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 	}
 }
-func RefreshTokenHandler() gin.HandlerFunc {
+
+func RefreshTokenHandler(client *mongo.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		var ctx, cancel = context.WithTimeout(c, 100*time.Second)
 		defer cancel()
 
 		refreshToken, err := c.Cookie("refresh_token")
@@ -243,14 +245,17 @@ func RefreshTokenHandler() gin.HandlerFunc {
 		}
 
 		var user models.User
-		err = usersCollection.FindOne(ctx, bson.M{"user_id": claim.UserId}).Decode(&user)
+		var userCollection *mongo.Collection = database.OpenCollection("users", client)
+
+		err = userCollection.FindOne(ctx, bson.D{{Key: "user_id", Value: claim.UserId}}).Decode(&user)
+
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
 			return
 		}
 
-		newToken, newRefreshToken, _ := utils.GenerateAllTokens(user.Email, user.FirstName, user.LastName, user.Role, user.UserId)
-		err = utils.UpdateAllTokens(user.UserId, newToken, newRefreshToken)
+		newToken, newRefreshToken, _ := utils.GenerateAllTokens(user.Email, user.FirstName, user.LastName, user.Role, user.UserID)
+		err = utils.UpdateAllTokens(user.UserID, newToken, newRefreshToken, client)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating tokens"})
 			return
@@ -261,5 +266,4 @@ func RefreshTokenHandler() gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, gin.H{"message": "Tokens refreshed"})
 	}
-
 }

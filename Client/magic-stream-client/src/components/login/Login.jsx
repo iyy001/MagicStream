@@ -4,21 +4,22 @@ import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import axiosClient from '../../api/axiosConfig';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-
 import useAuth from '../../hooks/useAuth';
 import logo from '../../assets/MagicStreamLogo.png';
 
-const Login = () => {   
+const Login = () => {
+    
+    const {setAuth} = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const location = useLocation();
-    const {setAuth} = useAuth();
     const navigate = useNavigate();
 
     const from = location.state?.from?.pathname || "/";
-
+    
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -33,16 +34,19 @@ const Login = () => {
             }
            // console.log(response.data);
             setAuth(response.data);
-            localStorage.setItem('user', JSON.stringify(response.data));
+            
+           // localStorage.setItem('user', JSON.stringify(response.data));
             // Handle successful login (e.g., store token, redirect)
-            navigate(from, {replace: true});
+           navigate(from, {replace: true});
+           //navigate('/');
+
         } catch (err) {
             console.error(err);
             setError('Invalid email or password');
         } finally {
             setLoading(false);
         }
-    };  
+    }; 
     return (
         <Container className="login-container d-flex align-items-center justify-content-center min-vh-100">
             <div className="login-card shadow p-4 rounded bg-white" style={{maxWidth: 400, width: '100%'}}>
@@ -97,6 +101,6 @@ const Login = () => {
                 </div>
             </div>
         </Container>
-    );
+    )
 }
 export default Login;

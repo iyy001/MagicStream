@@ -1,48 +1,37 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
-	"strings"
-
+	"github.com/GavinLonDigital/MagicStream/Server/MagicStreamServer/database"
 	"github.com/GavinLonDigital/MagicStream/Server/MagicStreamServer/routes"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-func init() {
-	// Set Gin to release mode to avoid debug logs in production
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Println("Warning: .env file not found")
-	}
-}
-
 func main() {
-	// Create a new Gin router
+	// This is the main function
+
 	router := gin.Default()
 
-	// Define a simple GET endpoint
-	router.GET("/", func(c *gin.Context) {
-		c.String(200, "Hello, MagicStream!")
+	router.GET("/hello", func(c *gin.Context) {
+		c.String(200, "Hello, MagicStreamMovies!")
 	})
 
-	router.GET("/ping", func(c *gin.Context) {
-		c.String(200, "pong")
-	})
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080" // Default port if not set
-		log.Fatal("PORT not set in .env file")
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Println("Warning: unable to find .env file")
 	}
-	fmt.Println("MongoDB URI:", port)
 
 	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+
 	var origins []string
 	if allowedOrigins != "" {
 		origins = strings.Split(allowedOrigins, ",")
@@ -67,11 +56,17 @@ func main() {
 	router.Use(cors.New(config))
 	router.Use(gin.Logger())
 
-	routes.SetupUnprotectedRoutes(router)
-	routes.SetupProtectedRoutes(router)
-	// Start the server on the specified port
-	if err := router.Run(":" + port); err != nil {
-		fmt.Println("Failed to start server:", err)
+	var client *mongo.Client = database.DBInstance()
+
+	if err := client.Ping(context.Background(), nil); err != nil {
+		log.Fatalf("Failed to reach server: %v", err)
+	}
+
+	routes.SetupUnProtectedRoutes(router, client)
+	routes.SetupProtectedRoutes(router, client)
+
+	if err := router.Run(":8080"); err != nil {
+		fmt.Println("Failed to start server", err)
 	}
 
 }
