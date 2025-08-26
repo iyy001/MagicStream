@@ -56,11 +56,12 @@ func main() {
 	router.Use(cors.New(config))
 	router.Use(gin.Logger())
 
-	var client *mongo.Client = database.DBInstance()
+	var client *mongo.Client = database.Connect()
 
 	if err := client.Ping(context.Background(), nil); err != nil {
 		log.Fatalf("Failed to reach server: %v", err)
 	}
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	routes.SetupUnProtectedRoutes(router, client)
 	routes.SetupProtectedRoutes(router, client)

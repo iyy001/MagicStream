@@ -10,7 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-func DBInstance() *mongo.Client {
+func Connect() *mongo.Client {
 
 	err := godotenv.Load(".env")
 
