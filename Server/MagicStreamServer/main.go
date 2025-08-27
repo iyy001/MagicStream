@@ -61,7 +61,13 @@ func main() {
 	if err := client.Ping(context.Background(), nil); err != nil {
 		log.Fatalf("Failed to reach server: %v", err)
 	}
-	defer func() { _ = client.Disconnect(context.Background()) }()
+	defer func() {
+		err := client.Disconnect(context.Background())
+		if err != nil {
+			log.Fatalf("Failed to disconnect from MongoDB: %v", err)
+		}
+
+	}()
 
 	routes.SetupUnProtectedRoutes(router, client)
 	routes.SetupProtectedRoutes(router, client)
