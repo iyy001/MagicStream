@@ -18,7 +18,6 @@ Movie streaming platform with AI recommendation built with modern web technologi
 | Frontend / Client | JavaScript / React |
 | Backend / Server | Go / gin-gonic |
 | Storage / Database | MongoDB |
-| Deployment | Vercel (for client), Render (for web api service), Atlas (for MongoDB) |
  
 ---
 
