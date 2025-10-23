@@ -31,11 +31,6 @@ It also demonstrates how **MongoDB** can serve as a reliable, scalable database 
  
 ---
 
-## Link to Video Tutorial on How to Build the App
-- https://youtu.be/jBf7of9JTV8
-
----
-
 ### Installation
 
 1. Clone the repo  
